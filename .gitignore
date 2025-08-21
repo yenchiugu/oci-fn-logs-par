@@ -68,6 +68,8 @@ Thumbs.db
 # Test files (if any)
 test/
 *.test.js
+test.txt
+test.zip
 
 # Temporary files
 tmp/
