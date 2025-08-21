@@ -1,0 +1,66 @@
+1234567890
+結論先講：**Google Cloud Console 裡沒有「簽過的 Signed URL 清單」可看**。
+Signed URL 是「當下用私鑰把請求資訊（方法、物件路徑、到期時間、Content-Type…）算出的一串網址」——**不會被 GCS 儲存**；所以你在 Console 裡看不到歷史紀錄。用 `gsutil signurl / gcloud storage sign-url` 產生後，要自己把那串 URL 留存（貼到票單、筆記、或由後端 API 回傳給 App/記錄到 Log）。
+
+不過你可以在 **Console 的物件頁面**「臨時再產生一條（通常是下載用 GET）」：
+
+---
+
+# 在 Console 產生（下載用）Signed URL 的位置
+
+> 僅適用 **已存在的物件** 且多半是 **GET**；Console 目前**不提供**為「尚未存在的物件」產 **PUT 上傳** 的 URL。
+
+1. 進入 **Cloud Storage ▸ Buckets**，點你的 bucket。
+2. 瀏覽到目標物件（例如 `logs/.../xxx.zip`），右側 **⋯（更多動作）**。
+3. 找到 **建立簽署網址 / Create signed URL**（名稱可能略有出入）。
+4. 在跳出的對話框選擇**有效時間**等選項，按下產生，**複製該 URL**。
+
+   * 這通常是 **下載（GET）** 的簽署網址，用來給外部在一段時間內讀取該物件。
+   * 視你的專案設定，可能需要選擇用哪個 **Service Account** 來簽。
+
+> 再提醒一次：**Console 沒有「歷史 Signed URL」頁面**，只會在你點「建立簽署網址」時現場算出一條給你。
+
+---
+
+# 要「上傳（PUT）」的 Signed URL 怎麼辦？
+
+Console 沒提供「為尚未存在的物件」產 **PUT** 簽署網址；請用下列任一方式產生：
+
+* **命令列（你剛用的方式）**
+
+  ```bat
+  gsutil signurl -m PUT -d 1h -c application/zip C:\path\service_account.json ^
+    gs://my-internal-logs/logs/tester-20250820-01.zip
+  ```
+
+  或
+
+  ```powershell
+  gcloud storage sign-url `
+    gs://my-internal-logs/logs/tester-20250820-01.zip `
+    --http-verb=PUT --duration=1h --headers=content-type=application/zip `
+    --impersonate-service-account <SA_EMAIL>
+  ```
+
+* **自建 presign 服務（建議正式做法）**：在 Cloud Run 寫一個 `/logs/presign`，每次 App 呼叫就回 `{url, key, expiresAt}`。這樣不用手動簽，也可把 URL 與使用者/版本記錄到日誌，便於稽核。
+
+---
+
+# 小技巧：把產生的 URL 留存
+
+* **命令列輸出到檔案**
+
+  ```powershell
+  gsutil signurl ... | Tee-Object .\signed_url.txt
+  ```
+* **後端服務回傳 JSON 並寫 Cloud Logging**（推薦）。
+* 若用 `gcloud ... --impersonate-service-account`，會走 IAM Credentials API，「誰在什麼時候簽」可在 **Cloud Audit Logs** 看到**行為**記錄，但**看不到實際的 URL 字串**；要保留 URL 仍需自己記錄。
+
+---
+
+## 快速總結
+
+* **Console 沒有「查看歷史 Signed URL」的地方**。
+* 你可以在「物件的更多動作」裡**臨時產生**一條（多為 **GET**）。
+* **PUT（上傳）** 的簽署網址：用 **CLI** 或 **自己做 presign API**。
+* 產出後**請自行保存**那條 URL（或由後端統一記錄）。

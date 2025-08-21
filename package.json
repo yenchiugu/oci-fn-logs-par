@@ -1,0 +1,27 @@
+{
+	"name": "oci-fn-log-par",
+	"version": "1.0.0",
+	"description": "Issue OCI Object Storage PAR (ObjectWrite) for Android log upload",
+	"main": "func.js",
+	"author": "",
+    
+	"license": "Apache-2.0",
+    "scripts": {
+        "local:presign:win": "cross-env OCI_CONFIG_FILE=%USERPROFILE%\\.oci\\config OCI_PROFILE=DEFAULT OCI_REGION=ap-tokyo-1 BUCKET=my-internal-logs DEFAULT_TTL_SEC=900 node func.js --userId tester --appVersion 1.2.3 --env internal",
+        "local:presign": "cross-env OCI_REGION=ap-tokyo-1 BUCKET=my-internal-logs DEFAULT_TTL_SEC=900 node func.js --userId tester --appVersion 1.2.3 --env internal",
+        "deploy": "fn -v deploy --app oci-fn-log-par-app",
+        "config:func": "fn config function oci-fn-log-par-app oci-fn-log-par BUCKET my-internal-logs && fn config function oci-fn-log-par-app oci-fn-log-par DEFAULT_TTL_SEC 900",
+        "remote:envdump": "powershell -NoProfile -Command \"$b=@{mode='envdump'}|ConvertTo-Json -Compress;  $b | fn.exe invoke oci-fn-log-par-app oci-fn-log-par\"",
+        "remote:selftest": "powershell -NoProfile -Command \"$b=@{mode='selftest'}|ConvertTo-Json -Compress; $b | fn.exe invoke oci-fn-log-par-app oci-fn-log-par\"",
+        "remote:presign": "powershell -NoProfile -Command \"$b=@{userId='tester';appVersion='1.2.3';env='internal'}|ConvertTo-Json -Compress; $b | fn.exe invoke oci-fn-log-par-app oci-fn-log-par\""
+    },
+	"dependencies": {
+		"@fnproject/fdk": "^0.0.81",
+		"oci-common": "^2.116.0",
+		"oci-objectstorage": "^2.116.0",
+		"uuid": "^11.1.0"
+	},
+	"devDependencies": {
+		"cross-env": "^10.0.0"
+	}
+}
